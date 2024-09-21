@@ -1,34 +1,54 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
 import { TaskService } from './task.service';
+import { AuthGuard } from '@nestjs/passport';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
-@Controller('task')
+@Controller('api/task')
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
   @Post()
-  create(@Body() createTaskDto: CreateTaskDto) {
+  @UseGuards(AuthGuard('jwt'))
+  create(@Request() req, @Body() createTaskDto: any) {
+    createTaskDto.user_id = req.user.id;
     return this.taskService.create(createTaskDto);
   }
 
   @Get()
-  findAll() {
-    return this.taskService.findAll();
+  @UseGuards(AuthGuard('jwt'))
+  findAll(@Request() req, @Query() query) {
+    query.user_id = req.user.id;
+    return this.taskService.findAll(query);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.taskService.findOne(+id);
+  @UseGuards(AuthGuard('jwt'))
+  findOne(@Param('id') id: string, @Request() req) {
+    let userId = req.user.id;
+    return this.taskService.findOne({ id, user_id: userId });
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
-    return this.taskService.update(+id, updateTaskDto);
+  @UseGuards(AuthGuard('jwt'))
+  update(@Param('id') id: string, @Body() updateTaskDto: any) {
+    return this.taskService.update(id, updateTaskDto);
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
   remove(@Param('id') id: string) {
-    return this.taskService.remove(+id);
+    return this.taskService.remove(id);
   }
 }

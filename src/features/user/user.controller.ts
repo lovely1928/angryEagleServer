@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   Query,
@@ -12,11 +11,8 @@ import {
   Request,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { query } from 'express';
 import { AuthGuard } from '@nestjs/passport';
-// import { JwtAuthGuard } from '../auth/jwt.authGuard';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('api/user')
 export class UserController {

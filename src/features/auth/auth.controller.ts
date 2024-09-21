@@ -7,11 +7,11 @@ export class AuthController {
 
   @Post('login')
   login(@Body() model) {
-    try {
+    // try {
       return this.authService.login(model);
-    } catch (e) {
-      console.log(e);
-    }
+    // } catch (e) {
+    //   console.log(e);
+    // }
   }
 
 }

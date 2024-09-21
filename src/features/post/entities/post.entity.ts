@@ -7,7 +7,7 @@ import { CommentPost } from './postComment.entity';
 
 @Entity()
 export class Post extends BaseEntity {
-
+ 
   @PrimaryColumn()
   id: string;
 
@@ -20,8 +20,8 @@ export class Post extends BaseEntity {
   @Column()
   userId: string;
 
-  @Column({ default: true })
-  isActive: boolean;
+    @Column({ default: true })
+    isActive: boolean;
 
   @BeforeInsert()
   generateId() {
