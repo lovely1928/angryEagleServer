@@ -143,6 +143,7 @@ export class TaskService {
     id,
     user_id,
     projectId,
+    memberId,
   }) {
     try {
       // const offset = limit * (page - 1);
@@ -187,12 +188,21 @@ export class TaskService {
         ])
         .getMany();
       const final = { active: [], inProgress: [], completed: [] };
-      final.active = tasksResult.filter((x) => x.status === TASK_STATUS.ACTIVE);
+      final.active = tasksResult.filter(
+        (x) =>
+          x.status === TASK_STATUS.ACTIVE &&
+          (memberId ? x.members.some((y) => y.member_id === memberId) : true),
+      );
       final.inProgress = tasksResult.filter((x) => {
-        return x.status === TASK_STATUS.IN_PROGRESS;
+        return (
+          x.status === TASK_STATUS.IN_PROGRESS &&
+          (memberId ? x.members.some((y) => y.member_id === memberId) : true)
+        );
       });
       final.completed = tasksResult.filter(
-        (x) => x.status === TASK_STATUS.COMPLETED,
+        (x) =>
+          x.status === TASK_STATUS.COMPLETED &&
+          (memberId ? x.members.some((y) => y.member_id === memberId) : true),
       );
       // // await new Promise(resolve => setTimeout(resolve, 2000));
       // const totalTasks = await this.taskRepository.count({
