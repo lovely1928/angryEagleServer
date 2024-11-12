@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -160,15 +160,19 @@ export class TaskService {
       //   skip: offset,
       //   take: limit
       // })
+      const whereObj = {
+        user_id,
+        projectId,
+        // order: sortObj,
+        // skip: +offset,
+        // take: limit,
+      };
+      if (search) {
+        whereObj['title'] = Like(`%${search}%`);
+      }
       const tasksResult = await this.taskRepository
         .createQueryBuilder('task')
-        .where({
-          user_id,
-          projectId,
-          // order: sortObj,
-          // skip: +offset,
-          // take: limit,
-        })
+        .where(whereObj)
         .innerJoinAndSelect('task.members', 'members')
         .innerJoinAndSelect('members.user', 'taskMember')
         .innerJoin('task.subTasks', 'subTasks')
@@ -264,6 +268,24 @@ export class TaskService {
       return updatedEntity;
     } catch (e) {
       console.log(e);
+    }
+  }
+
+  async updateSubTaskStatus(id: string) {
+    try {
+      const subtask: any = await this.subTaskRepository.findOne({ where: { id } });
+      if(!subtask){
+        throw new HttpException({ status: 400, error: 'Cannot find subtask' }, 400)
+      }
+      const newStatus = subtask.isDone ? false : true;
+      const model = { isDone: newStatus };
+      Object.assign(subtask, model);
+      const updatedEntity = await this.subTaskRepository.save(subtask);
+      return { message: 'Task Updated' };
+    } catch (e) {
+      console.log(e);
+      throw e
+
     }
   }
 }

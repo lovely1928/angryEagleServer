@@ -29,6 +29,7 @@ export class ProjectController {
   @UseGuards(AuthGuard('jwt'))
   findAll(@Request() req) {
     const payload = {
+      ...req.query,
       userId: req.user.id,
     };
     return this.projectService.findAll(payload);

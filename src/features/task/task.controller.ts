@@ -40,6 +40,16 @@ export class TaskController {
     return this.taskService.findOne({ id, user_id: userId });
   }
 
+  @Patch('subTask/changeStatus/:id')
+  @UseGuards(AuthGuard('jwt'))
+  updateSubTask(@Param('id') id: string) {
+    // try {
+      return this.taskService.updateSubTaskStatus(id);
+    // } catch (e) {
+    //   throw e;
+    // }
+  }
+
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'))
   update(@Param('id') id: string, @Body() updateTaskDto: any) {

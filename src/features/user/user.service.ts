@@ -53,7 +53,6 @@ export class UserService {
       })
       // await new Promise(resolve => setTimeout(resolve, 2000));
       const totalUsers = await this.usersRepository.count()
-      setTimeout(() => { }, 5000)
       return { data: users, totalUsers }
 
     }

@@ -2,9 +2,10 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
 import { ProjectTeam } from './entities/projectTean.entity';
+import { Task } from '../task/entities/Task.entity';
 
 @Injectable()
 export class ProjectService {
@@ -13,6 +14,8 @@ export class ProjectService {
     private projectRepository: Repository<Project>,
     @InjectRepository(ProjectTeam)
     private projectTeamRepository: Repository<ProjectTeam>,
+    @InjectRepository(Task)
+    private taskRepository: Repository<Task>,
   ) {}
 
   async create(payload) {
@@ -32,9 +35,11 @@ export class ProjectService {
       });
       await this.projectRepository.save(newProj);
       // inserting team members
-      if (team.length > 0) {
-        await this.insertTeamMembers({ projectId: newProj.id, team });
-      }
+      await this.insertTeamMembers({
+        projectId: newProj.id,
+        team: [{ userId, role: 'owner' }, ...team],
+      });
+
       return { message: 'Success', data: newProj };
     } catch (e) {
       console.log(e);
@@ -58,17 +63,64 @@ export class ProjectService {
     }
   }
 
+  // async findAll(payload) {
+  //   try {
+  //     const { userId } = payload;
+  //     const list: any = await this.projectRepository.find({
+  //       where: { userId: userId, isActive: true },
+  //     });
+  //     const q = `
+  //     select
+  //     	COUNT(*) as count,
+  //     	t.status as status,
+  //     	t.projectId as projectId
+  //     from task t
+  //     where t.user_id = '${userId}'
+  //     group by t.status, t.projectId
+  //     `;
+
+  //     const countData = await this.taskRepository.query(q);
+
+  //     for (let proj of list) {
+  //       const stat = countData.filter((x) => x.projectId === proj.id);
+  //       proj.stats = stat;
+  //     }
+  //     return { data: list };
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  //   return `This action returns all project`;
+  // }
+
   async findAll(payload) {
+    const { sort, userId, order, search, limit = 10, page } = payload;
     try {
-      const { userId } = payload;
-      const list = await this.projectRepository.find({
-        where: { userId: userId, isActive: true },
+      const offset = limit * (page - 1);
+      const sortObj: any = { [sort]: order };
+      let whereCond: any = { userId: userId, isActive: true };
+      if (search) {
+        whereCond['title'] = Like(`%${search}%`);
+        // whereCond['lastName'] =   search
+        // whereCond['email'] =   search
+      }
+      // console.log({
+      //   where: whereCond,
+      //   order: sortObj,
+      //   skip: offset,
+      //   take: limit
+      // })
+      const users = await this.projectRepository.find({
+        where: whereCond,
+        order: sortObj,
+        skip: +offset,
+        take: limit,
       });
-      return { data: list };
+      // await new Promise(resolve => setTimeout(resolve, 2000));
+      const totalUsers = await this.projectRepository.count();
+      return { data: users, totalUsers };
     } catch (e) {
       console.log(e);
     }
-    return `This action returns all project`;
   }
 
   async findOne(id: string) {
@@ -77,7 +129,7 @@ export class ProjectService {
       const q = `
       SELECT
         u.id AS id,
-        u.profileImage AS profileImage,
+        u.profileImage AS profileImage, 
         u.firstName AS firstName,
         u.lastName AS lastName
       FROM project_team pt
