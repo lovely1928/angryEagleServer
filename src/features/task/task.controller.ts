@@ -33,6 +33,12 @@ export class TaskController {
     return this.taskService.findAll(query);
   }
 
+  @Get('analytics/:id')
+  @UseGuards(AuthGuard('jwt'))
+  getAnalytics(@Param('id') id: string, @Request() req) {
+    let userId = req.user.id;
+    return this.taskService.getAnalytics({ id, user_id: userId });
+  }
   @Get(':id')
   @UseGuards(AuthGuard('jwt'))
   findOne(@Param('id') id: string, @Request() req) {
@@ -44,7 +50,7 @@ export class TaskController {
   @UseGuards(AuthGuard('jwt'))
   updateSubTask(@Param('id') id: string) {
     // try {
-      return this.taskService.updateSubTaskStatus(id);
+    return this.taskService.updateSubTaskStatus(id);
     // } catch (e) {
     //   throw e;
     // }

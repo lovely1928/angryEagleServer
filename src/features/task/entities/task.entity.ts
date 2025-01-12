@@ -13,6 +13,8 @@ import {
 import { TaskMember } from './TaskMember.entity';
 import { SubTask } from './SubTask.entity';
 import { TASK_STATUS } from 'src/common/enums/taskStatus.enum';
+import * as moment from 'moment-timezone';
+import { Types } from 'mysql2';
 
 @Entity()
 export class Task extends BaseEntity {
@@ -51,6 +53,15 @@ export class Task extends BaseEntity {
 
   @Column()
   dueDate: number;
+
+  @Column({ default: moment().unix() })
+  creationDate: number;
+
+  @Column({ nullable: true })
+  inProgressDate: number;
+
+  @Column({ nullable: true })
+  completionDate: number;
 
   @OneToMany(() => TaskMember, (member) => member.task)
   @JoinColumn({ name: 'id' })

@@ -44,7 +44,7 @@ import { ProjectTeam } from './features/project/entities/projectTean.entity';
         Project,
         ProjectTeam
       ],
-      synchronize: true,
+      synchronize: false,
     }),
     UserModule,
     AuthModule,

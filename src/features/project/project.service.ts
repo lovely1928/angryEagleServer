@@ -116,8 +116,8 @@ export class ProjectService {
         take: limit,
       });
       // await new Promise(resolve => setTimeout(resolve, 2000));
-      const totalUsers = await this.projectRepository.count();
-      return { data: users, totalUsers };
+      const totalProjects = await this.projectRepository.count();
+      return { data: users, totalProjects };
     } catch (e) {
       console.log(e);
     }

@@ -8,6 +8,7 @@ import { TaskMember } from './entities/TaskMember.entity';
 import { SubTask } from './entities/SubTask.entity';
 import { TASK_STATUS } from 'src/common/enums/taskStatus.enum';
 import { nanoid } from 'nanoid';
+import * as moment from 'moment-timezone';
 
 const taskts = [
   {
@@ -92,6 +93,14 @@ export class TaskService {
           { status: 400, error: 'Project Id is mandatory' },
           400,
         );
+
+      if (team.length > 1) {
+        throw new HttpException(
+          { status: 400, error: 'Only one assignee is allowed' },
+          400,
+        );
+      }
+
       // creating task
       const task: Task = await this.taskRepository.create({
         title,
@@ -131,6 +140,7 @@ export class TaskService {
       return { message: 'New Task Created' };
     } catch (e) {
       console.log(e);
+      throw e;
     }
   }
 
@@ -188,6 +198,7 @@ export class TaskService {
           'task.user_id',
           'task.dueDate',
           'task.status',
+          'task.projectId',
           'members',
         ])
         .getMany();
@@ -218,6 +229,123 @@ export class TaskService {
     }
   }
 
+  async getAnalytics(payload: any) {
+    try {
+      const { id: projectId } = payload;
+      // line chart
+      const createdchart = this.getTaskStatsByDateRangeAndStatus({
+        projectId,
+        startDate: 1730426748,
+        endDate: 1732932348,
+        status: TASK_STATUS.ACTIVE,
+      });
+      const inProgresschart = this.getTaskStatsByDateRangeAndStatus({
+        projectId,
+        startDate: 1730426748,
+        endDate: 1732932348,
+        status: TASK_STATUS.IN_PROGRESS,
+      });
+      const completedchart = this.getTaskStatsByDateRangeAndStatus({
+        projectId,
+        startDate: 1730426748,
+        endDate: 1732932348,
+        status: TASK_STATUS.COMPLETED,
+      });
+      const [x, y, z]: any = await Promise.allSettled([
+        createdchart,
+        inProgresschart,
+        completedchart,
+      ]);
+
+      const barQ = `
+      	select 
+        count(*) as count,
+        t.status as status ,
+        tm.member_id as user_id,
+        u.firstName as firstName 
+          from task t 
+          right join task_member tm on tm.task_id = t.id
+          left join user u on u.id= tm.member_id 
+          where projectId = "${projectId}"
+          group by tm.member_id ,t.status ,u.firstName 
+      `;
+      const barData = await this.taskRepository.query(barQ);
+      const finalBar = {
+        active: barData.filter((x) => x.status === TASK_STATUS.ACTIVE),
+        inProgress: barData.filter((x) => x.status === TASK_STATUS.IN_PROGRESS),
+        completed: barData.filter((x) => x.status === TASK_STATUS.COMPLETED),
+      };
+      const uniqueTaskMem = []
+      for (const member of uniqueTaskMem){
+        
+
+      }
+      return {
+        data: {
+          chart: {
+            active: x.value,
+            inProgress: y.value,
+            completed: z.value,
+          },
+          bar: finalBar,
+          pie: {},
+        },
+      };
+      // pie chart
+
+      // bar graph member wise
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  getTaskStatsByDateRangeAndStatus = async ({
+    startDate,
+    endDate,
+    status,
+    projectId,
+  }) => {
+    // Validate inputs
+    if (!startDate || !endDate || !status) {
+      throw new Error(
+        'All arguments (startDate, endDate, status) are required.',
+      );
+    }
+
+    // SQL query
+    const query = `
+        SELECT 
+            DATE(FROM_UNIXTIME(
+                CASE '${status}'
+                    WHEN '${TASK_STATUS.ACTIVE}' THEN creationDate
+                    WHEN '${TASK_STATUS.IN_PROGRESS}' THEN inProgressDate
+                    WHEN '${TASK_STATUS.COMPLETED}' THEN completionDate
+                END
+            )) AS date,
+            COUNT(*) AS count
+        FROM task
+        WHERE
+          projectId = '${projectId}' AND
+            (CASE '${status}'
+                    WHEN '${TASK_STATUS.ACTIVE}' THEN creationDate
+                    WHEN '${TASK_STATUS.IN_PROGRESS}' THEN inProgressDate
+                    WHEN '${TASK_STATUS.COMPLETED}' THEN completionDate
+                    END
+                  )
+        GROUP BY date
+        ORDER BY date;
+    `;
+    //            END BETWEEN ${startDate} AND ${endDate}
+    // Execute query and return results (replace with your DB execution logic)
+    const results = await this.taskRepository.query(query);
+
+    // Return formatted results
+    return results.map((row) => ({
+      date: moment(row.date).unix(),
+      count: +row.count,
+    }));
+  };
+
   async findOne(attributeObj) {
     try {
       const task: any = await this.taskRepository
@@ -246,6 +374,12 @@ export class TaskService {
           400,
         );
       }
+      if (model.status === TASK_STATUS.IN_PROGRESS) {
+        model.inProgressDate = moment().unix();
+      }
+      if (model.status === TASK_STATUS.COMPLETED) {
+        model.completionDate = moment().unix();
+      }
       Object.assign(user, model);
       const updatedEntity = await this.taskRepository.save(user);
       return { message: 'Task Updated' };
@@ -273,9 +407,14 @@ export class TaskService {
 
   async updateSubTaskStatus(id: string) {
     try {
-      const subtask: any = await this.subTaskRepository.findOne({ where: { id } });
-      if(!subtask){
-        throw new HttpException({ status: 400, error: 'Cannot find subtask' }, 400)
+      const subtask: any = await this.subTaskRepository.findOne({
+        where: { id },
+      });
+      if (!subtask) {
+        throw new HttpException(
+          { status: 400, error: 'Cannot find subtask' },
+          400,
+        );
       }
       const newStatus = subtask.isDone ? false : true;
       const model = { isDone: newStatus };
@@ -284,8 +423,7 @@ export class TaskService {
       return { message: 'Task Updated' };
     } catch (e) {
       console.log(e);
-      throw e
-
+      throw e;
     }
   }
 }
